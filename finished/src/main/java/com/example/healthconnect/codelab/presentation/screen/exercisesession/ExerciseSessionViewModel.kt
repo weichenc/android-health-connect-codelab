@@ -20,7 +20,10 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.health.connect.client.HealthConnectFeatures
+import androidx.health.connect.client.feature.ExperimentalFeatureAvailabilityApi
 import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.permission.HealthPermission.Companion.PERMISSION_READ_HEALTH_DATA_HISTORY
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.StepsRecord
@@ -29,6 +32,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.healthconnect.codelab.data.HealthConnectManager
+import kotlinx.coroutines.launch
 import java.io.IOException
 import java.time.Duration
 import java.time.Instant
@@ -36,7 +40,6 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import kotlin.random.Random
-import kotlinx.coroutines.launch
 
 class ExerciseSessionViewModel(private val healthConnectManager: HealthConnectManager) :
   ViewModel() {
@@ -48,7 +51,15 @@ class ExerciseSessionViewModel(private val healthConnectManager: HealthConnectMa
     HealthPermission.getWritePermission(HeartRateRecord::class)
   )
 
+  val historyReadPermissions = setOf(PERMISSION_READ_HEALTH_DATA_HISTORY)
+
   var permissionsGranted = mutableStateOf(false)
+    private set
+
+  var historyReadAvailable = mutableStateOf(false)
+    private set
+
+  var historyReadGranted = mutableStateOf(false)
     private set
 
   var sessionsList: MutableState<List<ExerciseSessionRecord>> = mutableStateOf(listOf())
@@ -103,8 +114,13 @@ class ExerciseSessionViewModel(private val healthConnectManager: HealthConnectMa
    * Where an error is caught, of the type Health Connect is known to throw, [uiState] is set to
    * [UiState.Error], which results in the snackbar being used to show the error message.
    */
+  @OptIn(ExperimentalFeatureAvailabilityApi::class)
   private suspend fun tryWithPermissionsCheck(block: suspend () -> Unit) {
     permissionsGranted.value = healthConnectManager.hasAllPermissions(permissions)
+    historyReadGranted.value = healthConnectManager.hasAllPermissions(historyReadPermissions)
+    historyReadAvailable.value = healthConnectManager.isFeatureAvailable(
+      HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_HISTORY
+    )
     uiState = try {
       if (permissionsGranted.value) {
         block()

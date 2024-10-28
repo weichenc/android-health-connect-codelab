@@ -48,6 +48,9 @@ import java.util.UUID
 fun ExerciseSessionScreen(
   permissions: Set<String>,
   permissionsGranted: Boolean,
+  historyReadPermissions: Set<String>,
+  historyReadAvailable: Boolean,
+  historyReadGranted: Boolean,
   sessionsList: List<ExerciseSessionRecord>,
   uiState: ExerciseSessionViewModel.UiState,
   onInsertClick: () -> Unit = {},
@@ -107,6 +110,26 @@ fun ExerciseSessionScreen(
             Text(stringResource(id = R.string.insert_exercise_session))
           }
         }
+        if (!historyReadGranted) {
+          item {
+            Button(
+              modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .padding(4.dp),
+              onClick = {
+                onPermissionsLaunch(historyReadPermissions)
+              },
+              enabled = historyReadAvailable,
+            ) {
+              if (historyReadAvailable){
+                Text("Request Background Read")
+              } else {
+                Text("Background Read Is Not Available")
+              }
+            }
+          }
+        }
 
         items(sessionsList) { session ->
           ExerciseSessionRow(
@@ -135,6 +158,9 @@ fun ExerciseSessionScreenPreview() {
     ExerciseSessionScreen(
       permissions = setOf(),
       permissionsGranted = true,
+      historyReadPermissions = setOf(),
+      historyReadAvailable = true,
+      historyReadGranted = true,
       sessionsList = listOf(
         ExerciseSessionRecord(
           exerciseType = ExerciseSessionRecord.EXERCISE_TYPE_RUNNING,
